@@ -4,10 +4,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define BUFFER_SIZE 50 // Should be able to declare during tpool_create?
+
+typedef void *job_func(void *);
+
+typedef struct _job {
+  job_func *f;
+  void *arg;
+} job;
+
 typedef struct _tpool {
   int thread_count;
   pthread_t *threads;
   pthread_cond_t worker_cv;
+  job *buffer; // circular buffer that stores pointers to job
 } tpool;
 
 void *worker(void *arg) {
@@ -43,10 +53,12 @@ tpool *tpool_create(int thread_count) {
   tp->thread_count = thread_count - th_failure;
   tp->threads = th;
   int s = pthread_cond_init(&tp->worker_cv, NULL);
-  if (s != 0) {
+  job *buf = malloc(sizeof(job) * BUFFER_SIZE);
+  if (s != 0 || !buf) {
     free(tp);
     free(th);
     return NULL;
   }
+  tp->buffer = buf;
   return tp;
 }
