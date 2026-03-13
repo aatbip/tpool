@@ -17,7 +17,13 @@ void *worker(void *arg) {
 
 tpool *tpool_create(int thread_count) {
   tpool *tp = malloc(sizeof(*tp));
+  if (!tp)
+    return NULL;
   pthread_t *th = malloc(sizeof(*th) * thread_count);
+  if (!th) {
+    free(tp);
+    return NULL;
+  }
   int th_failure = 0;
   for (int i = 0; i < thread_count; i++) {
     int s = pthread_create(th + i, NULL, worker, (void *)tp);
