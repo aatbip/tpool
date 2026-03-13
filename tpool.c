@@ -7,6 +7,7 @@
 typedef struct _tpool {
   int thread_count;
   pthread_t *threads;
+  pthread_cond_t worker_cv;
 } tpool;
 
 void *worker(void *arg) {
@@ -41,5 +42,10 @@ tpool *tpool_create(int thread_count) {
   /*`thread_count` should decrement if there failure during pthread_create.*/
   tp->thread_count = thread_count - th_failure;
   tp->threads = th;
-  return tp;
+  int s = pthread_cond_init(&tp->worker_cv, NULL);
+  if (!s) {
+    free(tp);
+    free(th);
+    return NULL;
+  }
 }
