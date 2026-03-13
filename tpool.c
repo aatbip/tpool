@@ -43,9 +43,10 @@ tpool *tpool_create(int thread_count) {
   tp->thread_count = thread_count - th_failure;
   tp->threads = th;
   int s = pthread_cond_init(&tp->worker_cv, NULL);
-  if (!s) {
+  if (s != 0) {
     free(tp);
     free(th);
     return NULL;
   }
+  return tp;
 }
