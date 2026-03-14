@@ -18,9 +18,10 @@ typedef struct _tpool {
   pthread_t *threads;
   pthread_mutex_t mutex;
   pthread_cond_t worker_cv;
-  job *buffer;     // circular buffer that stores pointers to job
-  int buffer_fill; // number of items in the buffer
-  int cur_job;     // pointer to the job to execute
+  pthread_cond_t enque_cv; // cv for thread that add jobs to the buffer
+  job *buffer;             // circular buffer that stores pointers to job
+  int buffer_fill;         // number of items in the buffer
+  int cur_job;             // pointer to the job to execute
 } tpool;
 
 void *worker(void *arg) {
@@ -33,6 +34,7 @@ void *worker(void *arg) {
   }
   c = tp->cur_job;
   tp->cur_job = (tp->cur_job + 1) % BUFFER_SIZE; // circular update of cur_job
+
   pthread_mutex_unlock(&tp->mutex);
   (tp->buffer + c)->f((tp->buffer + c)->arg); // call job_func, pass arg parameter
   return NULL;
@@ -74,6 +76,13 @@ tpool *tpool_create(int thread_count) {
   if (s != 0 || !buf) {
     free(tp);
     free(th);
+    return NULL;
+  }
+  s = pthread_cond_init(&tp->enque_cv, NULL);
+  if (s != 0) {
+    free(tp);
+    free(th);
+    pthread_cond_destroy(&tp->worker_cv);
     return NULL;
   }
   tp->buffer = buf;
