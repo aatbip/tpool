@@ -31,6 +31,7 @@ void *worker(void *arg) {
     pthread_cond_wait(&tp->worker_cv, &tp->mutex);
   }
 
+  tp->cur_job = ++tp->cur_job % BUFFER_SIZE; // circular update of cur_job
   pthread_mutex_unlock(&tp->mutex);
 
   return NULL;
