@@ -43,6 +43,16 @@ void *worker(void *arg) {
   }
 }
 
+int tpool_add(tpool *tp, void *(*func)(void *), void *arg) {
+  pthread_mutex_lock(&tp->mutex);
+  while (tp->job_count >= BUFFER_SIZE) {
+    pthread_cond_wait(&tp->enque_cv, &tp->mutex);
+  }
+
+  pthread_mutex_unlock(&tp->mutex);
+  return 0;
+}
+
 tpool *tpool_create(int thread_count) {
   tpool *tp = malloc(sizeof(*tp));
   if (!tp)
