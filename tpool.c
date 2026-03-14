@@ -26,20 +26,21 @@ typedef struct _tpool {
 } tpool;
 
 void *worker(void *arg) {
-  // worker thread which will execute jobs from the queue
-  tpool *tp = (tpool *)arg;
-  int c;
-  pthread_mutex_lock(&tp->mutex);
-  while (tp->job_count == 0) {
-    pthread_cond_wait(&tp->worker_cv, &tp->mutex);
+  for (;;) {
+    // worker thread which will execute jobs from the queue
+    tpool *tp = (tpool *)arg;
+    int c;
+    pthread_mutex_lock(&tp->mutex);
+    while (tp->job_count == 0) {
+      pthread_cond_wait(&tp->worker_cv, &tp->mutex);
+    }
+    c = tp->cur_job;
+    tp->cur_job = (tp->cur_job + 1) % BUFFER_SIZE; // circular update of cur_job
+    tp->job_count--;                               // decrement the number of jobs in the buffer
+    pthread_cond_signal(&tp->enque_cv);
+    pthread_mutex_unlock(&tp->mutex);
+    (tp->buffer + c)->f((tp->buffer + c)->arg); // call job_func, pass arg parameter
   }
-  c = tp->cur_job;
-  tp->cur_job = (tp->cur_job + 1) % BUFFER_SIZE; // circular update of cur_job
-  tp->job_count--;                               // decrement the number of jobs in the buffer
-  pthread_cond_signal(&tp->enque_cv);
-  pthread_mutex_unlock(&tp->mutex);
-  (tp->buffer + c)->f((tp->buffer + c)->arg); // call job_func, pass arg parameter
-  return NULL;
 }
 
 tpool *tpool_create(int thread_count) {
