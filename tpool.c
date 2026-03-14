@@ -16,6 +16,7 @@ typedef struct _job {
 typedef struct _tpool {
   int thread_count;
   pthread_t *threads;
+  pthread_mutex_t mutex;
   pthread_cond_t worker_cv;
   job *buffer;     // circular buffer that stores pointers to job
   int buffer_fill; // number of items in the buffer
@@ -53,7 +54,13 @@ tpool *tpool_create(int thread_count) {
   /*`thread_count` should decrement if there failure during pthread_create.*/
   tp->thread_count = thread_count - th_failure;
   tp->threads = th;
-  int s = pthread_cond_init(&tp->worker_cv, NULL);
+  int s = pthread_mutex_init(&tp->mutex, NULL);
+  if (s != 0) {
+    free(tp);
+    free(th);
+    return NULL;
+  }
+  s = pthread_cond_init(&tp->worker_cv, NULL);
   job *buf = malloc(sizeof(job) * BUFFER_SIZE);
   if (s != 0 || !buf) {
     free(tp);
