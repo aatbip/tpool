@@ -25,6 +25,11 @@ typedef struct _tpool {
 void *worker(void *arg) {
   // worker thread which will execute jobs from the queue
   tpool *tp = (tpool *)arg;
+  pthread_mutex_lock(&tp->mutex);
+  while (tp->buffer_fill == 0) {
+    pthread_cond_wait(&tp->worker_cv, &tp->mutex);
+  }
+  pthread_mutex_unlock(&tp->mutex);
 
   return NULL;
 }
