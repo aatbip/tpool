@@ -20,6 +20,7 @@ typedef struct _tpool {
   pthread_cond_t worker_cv;
   job *buffer;     // circular buffer that stores pointers to job
   int buffer_fill; // number of items in the buffer
+  int cur_job;     // pointer to the job to execute
 } tpool;
 
 void *worker(void *arg) {
@@ -29,6 +30,7 @@ void *worker(void *arg) {
   while (tp->buffer_fill == 0) {
     pthread_cond_wait(&tp->worker_cv, &tp->mutex);
   }
+
   pthread_mutex_unlock(&tp->mutex);
 
   return NULL;
@@ -74,5 +76,6 @@ tpool *tpool_create(int thread_count) {
   }
   tp->buffer = buf;
   tp->buffer_fill = 0;
+  tp->cur_job = 0;
   return tp;
 }
