@@ -22,6 +22,7 @@ typedef struct _tpool {
   job *buffer;             // circular buffer that stores pointers to job
   int buffer_fill;         // number of jobs in the buffer
   int cur_job;             // pointer to the job to execute
+  int cur_fill;            // pointer in buffer where next job to be added
 } tpool;
 
 void *worker(void *arg) {
@@ -89,5 +90,6 @@ tpool *tpool_create(int thread_count) {
   tp->buffer = buf;
   tp->buffer_fill = 0;
   tp->cur_job = 0;
+  tp->cur_fill = 0;
   return tp;
 }
