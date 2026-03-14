@@ -34,7 +34,7 @@ void *worker(void *arg) {
   }
   c = tp->cur_job;
   tp->cur_job = (tp->cur_job + 1) % BUFFER_SIZE; // circular update of cur_job
-
+  pthread_cond_signal(&tp->enque_cv);
   pthread_mutex_unlock(&tp->mutex);
   (tp->buffer + c)->f((tp->buffer + c)->arg); // call job_func, pass arg parameter
   return NULL;
