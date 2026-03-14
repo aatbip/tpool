@@ -48,7 +48,11 @@ int tpool_add(tpool *tp, void *(*func)(void *), void *arg) {
   while (tp->job_count >= BUFFER_SIZE) {
     pthread_cond_wait(&tp->enque_cv, &tp->mutex);
   }
-
+  (tp->buffer + tp->cur_fill)->f = func;
+  (tp->buffer + tp->cur_fill)->arg = arg;
+  tp->job_count++;
+  tp->cur_fill = (tp->cur_fill + 1) % BUFFER_SIZE;
+  pthread_cond_signal(&tp->worker_cv);
   pthread_mutex_unlock(&tp->mutex);
   return 0;
 }
