@@ -105,8 +105,3 @@ tpool *tpool_create(int thread_count) {
   tp->cur_fill = 0;
   return tp;
 }
-
-int main(void) {
-  tpool_create(10);
-  return 0;
-}
