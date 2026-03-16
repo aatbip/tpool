@@ -6,7 +6,7 @@
 
 #define BUFFER_SIZE 50 // Should be able to declare during tpool_create?
 
-#define ERR(s, t) (fprintf(stderr, s, strerror(t)));
+#define ERR(s, ...) (fprintf(stderr, "err: " s, ##__VA_ARGS__))
 
 typedef void *job_func(void *);
 
@@ -65,6 +65,7 @@ tpool *tpool_create(int thread_count) {
   if (!tp || !th) {
     free(tp);
     free(th);
+    ERR("tpool_create: couldn't allocate memory");
     return NULL;
   }
   int th_failure = 0;
@@ -72,35 +73,30 @@ tpool *tpool_create(int thread_count) {
     int s = pthread_create(th + i, NULL, worker, (void *)tp);
     if (s != 0) {
       th_failure++;
-      ERR("pthread_create: %s\n", s)
+      ERR("pthread_create: %s\n", strerror(s));
     }
   }
+  /*All calls to pthread_create failed.*/
   if (th_failure >= thread_count) {
     free(tp);
     free(th);
+    ERR("couldn't create a single thread.\n");
     return NULL;
   }
-  /*`thread_count` should decrement if there failure during pthread_create.*/
+  /*`thread_count` should decrement if there are failure during pthread_create.*/
   tp->thread_count = thread_count - th_failure;
   tp->threads = th;
-  int s = pthread_mutex_init(&tp->mutex, NULL);
-  if (s != 0) {
-    free(tp);
-    free(th);
-    return NULL;
-  }
-  s = pthread_cond_init(&tp->worker_cv, NULL);
+  int mutex_ch = pthread_mutex_init(&tp->mutex, NULL);
+  int cond_ch1 = pthread_cond_init(&tp->worker_cv, NULL);
+  int cond_ch2 = pthread_cond_init(&tp->enque_cv, NULL);
   job *buf = malloc(sizeof(job) * BUFFER_SIZE);
-  if (s != 0 || !buf) {
+  if (mutex_ch != 0 || cond_ch1 != 0 || cond_ch2 != 0 || !buf) {
     free(tp);
     free(th);
-    return NULL;
-  }
-  s = pthread_cond_init(&tp->enque_cv, NULL);
-  if (s != 0) {
-    free(tp);
-    free(th);
+    free(buf);
     pthread_cond_destroy(&tp->worker_cv);
+    pthread_cond_destroy(&tp->enque_cv);
+    ERR("tpool_create: couldn't initialize synchronization primitive/s");
     return NULL;
   }
   tp->buffer = buf;
