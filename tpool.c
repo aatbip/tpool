@@ -6,6 +6,8 @@
 
 #define BUFFER_SIZE 50 // Should be able to declare during tpool_create?
 
+#define ERR(s, t) (fprintf(stderr, s, strerror(t)));
+
 typedef void *job_func(void *);
 
 typedef struct _job {
@@ -59,11 +61,10 @@ int tpool_add(tpool *tp, void *(*func)(void *), void *arg) {
 
 tpool *tpool_create(int thread_count) {
   tpool *tp = malloc(sizeof(*tp));
-  if (!tp)
-    return NULL;
   pthread_t *th = malloc(sizeof(*th) * thread_count);
-  if (!th) {
+  if (!tp || !th) {
     free(tp);
+    free(th);
     return NULL;
   }
   int th_failure = 0;
@@ -71,7 +72,7 @@ tpool *tpool_create(int thread_count) {
     int s = pthread_create(th + i, NULL, worker, (void *)tp);
     if (s != 0) {
       th_failure++;
-      fprintf(stderr, "pthread_create: %s\n", strerror(s));
+      ERR("pthread_create: %s\n", s)
     }
   }
   if (th_failure >= thread_count) {
@@ -107,4 +108,9 @@ tpool *tpool_create(int thread_count) {
   tp->cur_job = 0;
   tp->cur_fill = 0;
   return tp;
+}
+
+int main(void) {
+  tpool_create(10);
+  return 0;
 }
