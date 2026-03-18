@@ -1,8 +1,8 @@
-tests_run: 
+tests_run: tests/out
 	./tests/out
 
-test: 
-	gcc -Wall tests/main.c tpool.c -I. -o tests/out 
-	
-tpool: 
-	gcc -Wall -c tpool.c
+tests/out: tests/main.c tests/tpool.o
+	gcc -Wall tests/main.c tests/tpool.o -I. -pthread -o tests/out
+
+tests/tpool.o: tpool.c tpool.h
+	gcc -Wall -c tpool.c -o tests/tpool.o
