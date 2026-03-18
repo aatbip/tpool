@@ -1,8 +1,11 @@
-tests_run: tests/out
-	./tests/out
-
-tests/out: tests/main.c tests/tpool.o
-	gcc -Wall tests/main.c tests/tpool.o -I. -pthread -o tests/out
+CC = gcc
+CC_FLAGS = -Wall -I. -pthread
 
 tests/tpool.o: tpool.c tpool.h
-	gcc -Wall -c tpool.c -o tests/tpool.o
+	${CC} -Wall -c $< -o $@
+
+tests/out: tests/main.c tests/tpool.o
+	${CC} ${CC_FLAGS} $^ -o $@
+
+run: tests/out
+	./tests/out
