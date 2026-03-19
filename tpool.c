@@ -41,7 +41,10 @@ void *worker(void *arg) {
     tp->cur_job = (tp->cur_job + 1) % BUFFER_SIZE; // circular update of cur_job
     tp->job_count--;                               // decrement the number of jobs in the buffer
     pthread_cond_signal(&tp->enque_cv);
-    /*Copy the job to the stack of this worker thread.*/
+    /*Copy the job to the stack of this worker thread. If the job is not copied but
+     * called directly after mutex is unlocked then later on tpool_add thread can
+     * overwrite this buffer location. This will result in race condition bug since
+     * memory can be overwritten even before the function execution is completed.*/
     j.f = (tp->buffer + c)->f;
     j.arg = (tp->buffer + c)->arg;
     pthread_mutex_unlock(&tp->mutex);
