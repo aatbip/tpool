@@ -18,5 +18,7 @@ int main(void) {
     tpool_add(tp, job, (void *)(uintptr_t)i);
   }
 
+  tpool_wait(tp);
+
   return 0;
 }

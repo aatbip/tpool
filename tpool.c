@@ -18,15 +18,16 @@ typedef struct _job {
 typedef struct _tpool {
   int thread_count;
   pthread_t *threads;
-  pthread_mutex_t tpool_lock;  // lock for the tpool struct
-  pthread_mutex_t worker_lock; // lock for worker's states
-  pthread_cond_t worker_cv;    // cv for worker thread
-  pthread_cond_t enque_cv;     // cv for thread that add jobs to the buffer
-  job *buffer;                 // circular buffer that stores pointers to job
-  int job_count;               // number of jobs in the buffer
-  int cur_job;                 // pointer to the job to execute
-  int cur_fill;                // pointer in buffer where next job to be added
-  int working_thread_count;    // count of threads that are still executing the job function
+  pthread_mutex_t tpool_lock;   // lock for the tpool struct
+  pthread_mutex_t worker_lock;  // lock for worker's states
+  pthread_cond_t worker_cv;     // cv for worker thread
+  pthread_cond_t enque_cv;      // cv for thread that add jobs to the buffer
+  job *buffer;                  // circular buffer that stores pointers to job
+  int job_count;                // number of jobs in the buffer
+  int cur_job;                  // pointer to the job to execute
+  int cur_fill;                 // pointer in buffer where next job to be added
+  int working_thread_count;     // count of threads that are still executing the job function
+  pthread_cond_t tpool_wait_cv; // cv for tpool_wait function
 } tpool;
 
 void *worker(void *arg) {
@@ -64,6 +65,12 @@ void *worker(void *arg) {
     tp->working_thread_count--;
     pthread_mutex_unlock(&tp->worker_lock);
   }
+}
+
+int tpool_wait(tpool *tp) {
+  while (tp->working_thread_count > 0) {
+  }
+  return 0;
 }
 
 int tpool_add(tpool *tp, void *(*func)(void *), void *arg) {
@@ -108,10 +115,12 @@ tpool *tpool_create(int thread_count) {
   tp->thread_count = thread_count - th_failure;
   tp->threads = th;
   int mutex_ch = pthread_mutex_init(&tp->tpool_lock, NULL);
-  int cond_ch1 = pthread_cond_init(&tp->worker_cv, NULL);
-  int cond_ch2 = pthread_cond_init(&tp->enque_cv, NULL);
+  int cond_ch;
+  cond_ch = pthread_cond_init(&tp->worker_cv, NULL);
+  cond_ch = pthread_cond_init(&tp->enque_cv, NULL);
+  cond_ch = pthread_cond_init(&tp->tpool_wait_cv, NULL);
   job *buf = malloc(sizeof(job) * BUFFER_SIZE);
-  if (mutex_ch != 0 || cond_ch1 != 0 || cond_ch2 != 0 || !buf) {
+  if (mutex_ch != 0 || cond_ch != 0 || !buf) {
     free(tp);
     free(th);
     free(buf);
