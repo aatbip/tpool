@@ -53,7 +53,6 @@ void *worker(void *arg) {
     pthread_mutex_unlock(&tp->tpool_lock);
 
     pthread_mutex_lock(&tp->worker_lock);
-
     /* increment working_thread_count to track number of threads still executing the job function*/
     tp->working_thread_count++;
     pthread_mutex_unlock(&tp->worker_lock);
@@ -68,8 +67,11 @@ void *worker(void *arg) {
 }
 
 int tpool_wait(tpool *tp) {
+  pthread_mutex_lock(&tp->worker_lock);
   while (tp->working_thread_count > 0) {
+    pthread_cond_wait(&tp->tpool_wait_cv, &tp->worker_lock);
   }
+  pthread_mutex_unlock(&tp->worker_lock);
   return 0;
 }
 

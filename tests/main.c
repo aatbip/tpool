@@ -14,7 +14,7 @@ int main(void) {
   tpool *tp = tpool_create(4);
   assert(tp != NULL);
 
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 1000; i++) {
     tpool_add(tp, job, (void *)(uintptr_t)i);
   }
 
