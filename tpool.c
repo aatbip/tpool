@@ -32,6 +32,7 @@ void *worker(void *arg) {
     // worker thread which will execute jobs from the queue
     tpool *tp = (tpool *)arg;
     int c;
+    job j;
     pthread_mutex_lock(&tp->mutex);
     while (tp->job_count == 0) {
       pthread_cond_wait(&tp->worker_cv, &tp->mutex);
@@ -40,8 +41,11 @@ void *worker(void *arg) {
     tp->cur_job = (tp->cur_job + 1) % BUFFER_SIZE; // circular update of cur_job
     tp->job_count--;                               // decrement the number of jobs in the buffer
     pthread_cond_signal(&tp->enque_cv);
+    /*Copy the job to the stack of this worker thread.*/
+    j.f = (tp->buffer + c)->f;
+    j.arg = (tp->buffer + c)->arg;
     pthread_mutex_unlock(&tp->mutex);
-    (tp->buffer + c)->f((tp->buffer + c)->arg); // call job_func, pass arg parameter
+    j.f(j.arg); // run the job
   }
 }
 
