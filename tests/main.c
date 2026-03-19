@@ -18,7 +18,5 @@ int main(void) {
     tpool_add(tp, job, (void *)(uintptr_t)i);
   }
 
-  for (int i = 0; i < 999999999; i++)
-    ;
   return 0;
 }
