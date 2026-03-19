@@ -42,7 +42,6 @@ void *worker(void *arg) {
     }
     c = tp->cur_job;
     tp->cur_job = (tp->cur_job + 1) % BUFFER_SIZE; // circular update of cur_job
-    tp->job_count--;                               // decrement the number of jobs in the buffer
     pthread_cond_signal(&tp->enque_cv);
     /*Copy the job to the stack of this worker thread. If the job is not copied but
      * called directly after mutex is unlocked then later on tpool_add thread can
@@ -50,11 +49,12 @@ void *worker(void *arg) {
      * memory can be overwritten even before the function execution is completed.*/
     j.f = (tp->buffer + c)->f;
     j.arg = (tp->buffer + c)->arg;
+    /* increment working_thread_count to track number of threads still executing the job function*/
+    tp->working_thread_count++;
     pthread_mutex_unlock(&tp->tpool_lock);
 
     pthread_mutex_lock(&tp->worker_lock);
-    /* increment working_thread_count to track number of threads still executing the job function*/
-    tp->working_thread_count++;
+    tp->job_count--; // decrement the number of jobs in the buffer
     pthread_mutex_unlock(&tp->worker_lock);
 
     j.f(j.arg); // run the job
@@ -62,13 +62,16 @@ void *worker(void *arg) {
     /* decrement working_thread_count after job function returns*/
     pthread_mutex_lock(&tp->worker_lock);
     tp->working_thread_count--;
+    if (tp->working_thread_count == 0) {
+      pthread_cond_signal(&tp->tpool_wait_cv);
+    }
     pthread_mutex_unlock(&tp->worker_lock);
   }
 }
 
 int tpool_wait(tpool *tp) {
   pthread_mutex_lock(&tp->worker_lock);
-  while (tp->working_thread_count > 0) {
+  while (tp->working_thread_count > 0 || tp->job_count > 0) {
     pthread_cond_wait(&tp->tpool_wait_cv, &tp->worker_lock);
   }
   pthread_mutex_unlock(&tp->worker_lock);
