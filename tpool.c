@@ -19,7 +19,6 @@ typedef struct _tpool {
   int thread_count;
   pthread_t *threads;
   pthread_mutex_t tpool_lock;   // lock for the tpool struct
-  pthread_mutex_t worker_lock;  // lock for worker's states
   pthread_cond_t worker_cv;     // cv for worker thread
   pthread_cond_t enque_cv;      // cv for thread that add jobs to the buffer
   job *buffer;                  // circular buffer that stores pointers to job
@@ -51,30 +50,27 @@ void *worker(void *arg) {
     j.arg = (tp->buffer + c)->arg;
     /* increment working_thread_count to track number of threads still executing the job function*/
     tp->working_thread_count++;
-    pthread_mutex_unlock(&tp->tpool_lock);
-
-    pthread_mutex_lock(&tp->worker_lock);
     tp->job_count--; // decrement the number of jobs in the buffer
-    pthread_mutex_unlock(&tp->worker_lock);
+    pthread_mutex_unlock(&tp->tpool_lock);
 
     j.f(j.arg); // run the job
 
     /* decrement working_thread_count after job function returns*/
-    pthread_mutex_lock(&tp->worker_lock);
+    pthread_mutex_lock(&tp->tpool_lock);
     tp->working_thread_count--;
-    if (tp->working_thread_count == 0) {
+    if (tp->working_thread_count == 0 && tp->job_count == 0) {
       pthread_cond_signal(&tp->tpool_wait_cv);
     }
-    pthread_mutex_unlock(&tp->worker_lock);
+    pthread_mutex_unlock(&tp->tpool_lock);
   }
 }
 
 int tpool_wait(tpool *tp) {
-  pthread_mutex_lock(&tp->worker_lock);
+  pthread_mutex_lock(&tp->tpool_lock);
   while (tp->working_thread_count > 0 || tp->job_count > 0) {
-    pthread_cond_wait(&tp->tpool_wait_cv, &tp->worker_lock);
+    pthread_cond_wait(&tp->tpool_wait_cv, &tp->tpool_lock);
   }
-  pthread_mutex_unlock(&tp->worker_lock);
+  pthread_mutex_unlock(&tp->tpool_lock);
   return 0;
 }
 
