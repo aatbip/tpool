@@ -41,6 +41,9 @@ void *worker(void *arg) {
     }
     c = tp->cur_job;
     tp->cur_job = (tp->cur_job + 1) % BUFFER_SIZE; // circular update of cur_job
+    /* increment working_thread_count to track number of threads still executing the job function*/
+    tp->working_thread_count++;
+    tp->job_count--; // decrement the number of jobs in the buffer
     pthread_cond_signal(&tp->enque_cv);
     /*Copy the job to the stack of this worker thread. If the job is not copied but
      * called directly after mutex is unlocked then later on tpool_add thread can
@@ -48,9 +51,6 @@ void *worker(void *arg) {
      * memory can be overwritten even before the function execution is completed.*/
     j.f = (tp->buffer + c)->f;
     j.arg = (tp->buffer + c)->arg;
-    /* increment working_thread_count to track number of threads still executing the job function*/
-    tp->working_thread_count++;
-    tp->job_count--; // decrement the number of jobs in the buffer
     pthread_mutex_unlock(&tp->tpool_lock);
 
     j.f(j.arg); // run the job
@@ -97,24 +97,6 @@ tpool *tpool_create(int thread_count) {
     ERR("tpool_create: couldn't allocate memory");
     return NULL;
   }
-  int th_failure = 0;
-  for (int i = 0; i < thread_count; i++) {
-    int s = pthread_create(th + i, NULL, worker, (void *)tp);
-    if (s != 0) {
-      th_failure++;
-      ERR("pthread_create: %s\n", strerror(s));
-    }
-  }
-  /*All calls to pthread_create failed.*/
-  if (th_failure >= thread_count) {
-    free(tp);
-    free(th);
-    ERR("couldn't create a single thread.\n");
-    return NULL;
-  }
-  /*`thread_count` should decrement if there are failure during pthread_create.*/
-  tp->thread_count = thread_count - th_failure;
-  tp->threads = th;
   int mutex_ch = pthread_mutex_init(&tp->tpool_lock, NULL);
   int cond_ch;
   cond_ch = pthread_cond_init(&tp->worker_cv, NULL);
@@ -127,6 +109,7 @@ tpool *tpool_create(int thread_count) {
     free(buf);
     pthread_cond_destroy(&tp->worker_cv);
     pthread_cond_destroy(&tp->enque_cv);
+    pthread_cond_destroy(&tp->tpool_wait_cv);
     ERR("tpool_create: couldn't initialize synchronization primitive/s");
     return NULL;
   }
@@ -135,5 +118,28 @@ tpool *tpool_create(int thread_count) {
   tp->cur_job = 0;
   tp->cur_fill = 0;
   tp->working_thread_count = 0;
+
+  int th_failure = 0;
+  for (int i = 0; i < thread_count; i++) {
+    int s = pthread_create(th + i, NULL, worker, (void *)tp);
+    if (s != 0) {
+      th_failure++;
+      ERR("pthread_create: %s\n", strerror(s));
+    }
+  }
+  /*All calls to pthread_create failed.*/
+  if (th_failure >= thread_count) {
+    free(tp);
+    free(th);
+    free(buf);
+    pthread_cond_destroy(&tp->worker_cv);
+    pthread_cond_destroy(&tp->enque_cv);
+    pthread_cond_destroy(&tp->tpool_wait_cv);
+    ERR("couldn't create a single thread.\n");
+    return NULL;
+  }
+  /*`thread_count` should decrement if there are failure during pthread_create.*/
+  tp->thread_count = thread_count - th_failure;
+  tp->threads = th;
   return tp;
 }

@@ -33,13 +33,3 @@ int main(void) {
 
   return 0;
 }
-
-// int main(void) {
-//   double start = get_time_ms();
-//   for (int i = 0; i < 1000000; i++) {
-//     job((void *)(uintptr_t)i);
-//   }
-//   double end = get_time_ms();
-//   printf("Operation took %.3f ms\n", end - start);
-//   return 0;
-// }
