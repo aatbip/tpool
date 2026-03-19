@@ -18,13 +18,15 @@ typedef struct _job {
 typedef struct _tpool {
   int thread_count;
   pthread_t *threads;
-  pthread_mutex_t buffer_lock;
-  pthread_cond_t worker_cv;
-  pthread_cond_t enque_cv; // cv for thread that add jobs to the buffer
-  job *buffer;             // circular buffer that stores pointers to job
-  int job_count;           // number of jobs in the buffer
-  int cur_job;             // pointer to the job to execute
-  int cur_fill;            // pointer in buffer where next job to be added
+  pthread_mutex_t buffer_lock; // lock for the circular buffer
+  pthread_mutex_t worker_lock; // lock for worker's states
+  pthread_cond_t worker_cv;    // cv for worker thread
+  pthread_cond_t enque_cv;     // cv for thread that add jobs to the buffer
+  job *buffer;                 // circular buffer that stores pointers to job
+  int job_count;               // number of jobs in the buffer
+  int cur_job;                 // pointer to the job to execute
+  int cur_fill;                // pointer in buffer where next job to be added
+  int working_thread_count;    // count of threads that are still executing the job function
 } tpool;
 
 void *worker(void *arg) {
@@ -110,5 +112,6 @@ tpool *tpool_create(int thread_count) {
   tp->job_count = 0;
   tp->cur_job = 0;
   tp->cur_fill = 0;
+  tp->working_thread_count = 0;
   return tp;
 }
