@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 double get_time_ms() {
@@ -12,7 +13,19 @@ double get_time_ms() {
 }
 
 void *job(void *arg) {
-  printf("job %d\n", (int)(uintptr_t)arg);
+  int n = (int)(uintptr_t)arg + 1000000;
+  int count = 0;
+  for (int i = 2; i <= n; i++) {
+    int prime = 1;
+    for (int j = 2; j * j <= i; j++) {
+      if (i % j == 0) {
+        prime = 0;
+        break;
+      }
+    }
+    count += prime;
+  }
+  (void)count;
   return NULL;
 }
 
@@ -20,10 +33,10 @@ int main(void) {
   /*Create tpool with 4 worker threads.*/
 
   double start = get_time_ms();
-  tpool *tp = tpool_create(4);
+  tpool *tp = tpool_create(24);
   assert(tp != NULL);
 
-  for (int i = 0; i < 1000000; i++) {
+  for (int i = 0; i < 500; i++) {
     tpool_add(tp, job, (void *)(uintptr_t)i);
   }
 
@@ -33,3 +46,12 @@ int main(void) {
 
   return 0;
 }
+// int main(void) {
+//   double start = get_time_ms();
+//   for (int i = 0; i < 500; i++) {
+//     job((void *)(uintptr_t)i);
+//   }
+//   double end = get_time_ms();
+//   printf("Operation took %.3f ms\n", end - start);
+//   return 0;
+// }
