@@ -13,21 +13,26 @@ double get_time_ms() {
 }
 
 void *job(void *arg) {
-  int n = (int)(uintptr_t)arg + 1000000;
-  int count = 0;
-  for (int i = 2; i <= n; i++) {
-    int prime = 1;
-    for (int j = 2; j * j <= i; j++) {
-      if (i % j == 0) {
-        prime = 0;
-        break;
-      }
-    }
-    count += prime;
-  }
-  (void)count;
+  printf("job: %d\n", (int)(uintptr_t)arg);
   return NULL;
 }
+
+// void *job(void *arg) {
+//   int n = (int)(uintptr_t)arg + 1000000;
+//   int count = 0;
+//   for (int i = 2; i <= n; i++) {
+//     int prime = 1;
+//     for (int j = 2; j * j <= i; j++) {
+//       if (i % j == 0) {
+//         prime = 0;
+//         break;
+//       }
+//     }
+//     count += prime;
+//   }
+//   (void)count;
+//   return NULL;
+// }
 
 int main(void) {
   /*Create tpool with 4 worker threads.*/
@@ -36,7 +41,7 @@ int main(void) {
   tpool *tp = tpool_create(24);
   assert(tp != NULL);
 
-  for (int i = 0; i < 500; i++) {
+  for (int i = 0; i < 5; i++) {
     tpool_add(tp, job, (void *)(uintptr_t)i);
   }
 
