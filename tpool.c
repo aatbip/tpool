@@ -21,13 +21,13 @@ typedef struct _tpool {
   pthread_mutex_t tpool_lock;   // lock for the tpool struct
   pthread_cond_t worker_cv;     // cv for worker thread
   pthread_cond_t enque_cv;      // cv for thread that add jobs to the buffer
+  pthread_cond_t tpool_wait_cv; // cv for tpool_wait function
   job *buffer;                  // circular buffer that stores pointers to job
   int job_count;                // number of jobs in the buffer
   int cur_job;                  // pointer to the job to execute
   int cur_fill;                 // pointer in buffer where next job to be added
   int working_thread_count;     // count of threads that are still executing the job function
   int shutdown;                 // flag to check if shutdown has been initiated, 1 if shutdown is initiated
-  pthread_cond_t tpool_wait_cv; // cv for tpool_wait function
 } tpool;
 
 void *worker(void *arg) {
@@ -37,8 +37,13 @@ void *worker(void *arg) {
     int c;
     job j;
     pthread_mutex_lock(&tp->tpool_lock);
-    while (tp->job_count == 0) {
+    while (tp->job_count == 0 && tp->shutdown == 0) {
       pthread_cond_wait(&tp->worker_cv, &tp->tpool_lock);
+    }
+    if (tp->job_count == 0 && tp->shutdown == 1) {
+      pthread_cond_signal(&tp->tpool_wait_cv);
+      pthread_mutex_unlock(&tp->tpool_lock);
+      return NULL;
     }
     c = tp->cur_job;
     tp->cur_job = (tp->cur_job + 1) % BUFFER_SIZE; // circular update of cur_job
@@ -59,9 +64,6 @@ void *worker(void *arg) {
     /* decrement working_thread_count after job function returns*/
     pthread_mutex_lock(&tp->tpool_lock);
     tp->working_thread_count--;
-    if (tp->working_thread_count == 0 && tp->job_count == 0 && tp->shutdown == 1) {
-      pthread_cond_signal(&tp->tpool_wait_cv);
-    }
     pthread_mutex_unlock(&tp->tpool_lock);
   }
 }
@@ -69,6 +71,7 @@ void *worker(void *arg) {
 int tpool_shutdown(tpool *tp) {
   pthread_mutex_lock(&tp->tpool_lock);
   tp->shutdown = 1;
+  pthread_cond_broadcast(&tp->worker_cv);
   pthread_mutex_unlock(&tp->tpool_lock);
   return 0;
 }
@@ -79,6 +82,20 @@ int tpool_wait(tpool *tp) {
     pthread_cond_wait(&tp->tpool_wait_cv, &tp->tpool_lock);
   }
   pthread_mutex_unlock(&tp->tpool_lock);
+  return 0;
+}
+
+int tpool_destroy(tpool *tp) {
+  for (int i = 0; i < tp->thread_count; i++) {
+    pthread_join(tp->threads[i], NULL); // wait for actual exit
+  }
+  free(tp->buffer);
+  free(tp->threads);
+  pthread_cond_destroy(&tp->worker_cv);
+  pthread_cond_destroy(&tp->enque_cv);
+  pthread_cond_destroy(&tp->tpool_wait_cv);
+  pthread_mutex_destroy(&tp->tpool_lock);
+  free(tp);
   return 0;
 }
 
@@ -136,7 +153,6 @@ tpool *tpool_create(int thread_count) {
   int th_failure = 0;
   for (int i = 0; i < thread_count; i++) {
     int s = pthread_create(th + i, NULL, worker, (void *)tp);
-    pthread_detach(*(th + i));
     if (s != 0) {
       th_failure++;
       ERR("pthread_create: %s\n", strerror(s));
