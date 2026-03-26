@@ -13,27 +13,27 @@ double get_time_ms() {
   return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
 }
 
-void *job(void *arg) {
-  printf("job: %d\n", (int)(uintptr_t)arg);
-  return NULL;
-}
-
 // void *job(void *arg) {
-//   int n = (int)(uintptr_t)arg + 1000000;
-//   int count = 0;
-//   for (int i = 2; i <= n; i++) {
-//     int prime = 1;
-//     for (int j = 2; j * j <= i; j++) {
-//       if (i % j == 0) {
-//         prime = 0;
-//         break;
-//       }
-//     }
-//     count += prime;
-//   }
-//   (void)count;
+//   printf("job: %d\n", (int)(uintptr_t)arg);
 //   return NULL;
 // }
+
+void *job(void *arg) {
+  int n = (int)(uintptr_t)arg + 1000000;
+  int count = 0;
+  for (int i = 2; i <= n; i++) {
+    int prime = 1;
+    for (int j = 2; j * j <= i; j++) {
+      if (i % j == 0) {
+        prime = 0;
+        break;
+      }
+    }
+    count += prime;
+  }
+  (void)count;
+  return NULL;
+}
 
 int main(void) {
   /*Create tpool with 4 worker threads.*/

@@ -1,5 +1,5 @@
 CC = gcc
-CC_FLAGS = -fsanitize=thread -Wall -I. -pthread
+CC_FLAGS = -Wall -I. -pthread
 
 tests/tpool.o: tpool.c tpool.h
 	${CC} -Wall -c $< -o $@
@@ -9,3 +9,6 @@ tests/out: tests/main.c tests/tpool.o
 
 run: tests/out
 	./tests/out
+
+clean: 
+	rm -rf ./tests/out && rm -rf ./tests/tpool.o
