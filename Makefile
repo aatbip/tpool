@@ -1,5 +1,5 @@
 CC = gcc
-CC_FLAGS = -Wall -I. -pthread
+CC_FLAGS = -fsanitize=thread -Wall -I. -pthread
 
 tests/tpool.o: tpool.c tpool.h
 	${CC} -Wall -c $< -o $@

@@ -79,9 +79,6 @@ int tpool_wait(tpool *tp) {
     pthread_cond_wait(&tp->tpool_wait_cv, &tp->tpool_lock);
   }
   pthread_mutex_unlock(&tp->tpool_lock);
-  // for (int i = 0; i < tp->thread_count; i++) {
-  //   pthread_join(tp->threads[i], NULL);
-  // }
   return 0;
 }
 
@@ -139,6 +136,7 @@ tpool *tpool_create(int thread_count) {
   int th_failure = 0;
   for (int i = 0; i < thread_count; i++) {
     int s = pthread_create(th + i, NULL, worker, (void *)tp);
+    pthread_detach(*(th + i));
     if (s != 0) {
       th_failure++;
       ERR("pthread_create: %s\n", strerror(s));
