@@ -38,15 +38,17 @@ int main(void) {
   /*Create tpool with 4 worker threads.*/
 
   double start = get_time_ms();
-  tpool *tp = tpool_create(24);
+  tpool *tp = tpool_create(4);
   assert(tp != NULL);
 
   for (int i = 0; i < 5; i++) {
+    if (i == 2) {
+      tpool_shutdown(tp);
+    }
     tpool_add(tp, job, (void *)(uintptr_t)i);
   }
 
   tpool_wait(tp);
-  printf("i work??\n");
   double end = get_time_ms();
   printf("tpool:Operation took %.3f ms\n", end - start);
 

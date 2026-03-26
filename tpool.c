@@ -37,8 +37,6 @@ void *worker(void *arg) {
     int c;
     job j;
     pthread_mutex_lock(&tp->tpool_lock);
-    if (tp->shutdown) { // if shutdown has been initiated
-    }
     while (tp->job_count == 0) {
       pthread_cond_wait(&tp->worker_cv, &tp->tpool_lock);
     }
@@ -89,6 +87,11 @@ int tpool_wait(tpool *tp) {
 
 int tpool_add(tpool *tp, void *(*func)(void *), void *arg) {
   pthread_mutex_lock(&tp->tpool_lock);
+  if (tp->shutdown == 1) {
+    pthread_cond_broadcast(&tp->worker_cv);
+    pthread_mutex_unlock(&tp->tpool_lock);
+    return 0;
+  }
   while (tp->job_count >= BUFFER_SIZE) {
     pthread_cond_wait(&tp->enque_cv, &tp->tpool_lock);
   }
