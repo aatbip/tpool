@@ -71,9 +71,9 @@ int tpool_wait(tpool *tp) {
     pthread_cond_wait(&tp->tpool_wait_cv, &tp->tpool_lock);
   }
   pthread_mutex_unlock(&tp->tpool_lock);
-  for (int i = 0; i < tp->thread_count; i++) {
-    pthread_join(tp->threads[i], NULL);
-  }
+  // for (int i = 0; i < tp->thread_count; i++) {
+  //   pthread_join(tp->threads[i], NULL);
+  // }
   return 0;
 }
 

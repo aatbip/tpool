@@ -46,6 +46,7 @@ int main(void) {
   }
 
   tpool_wait(tp);
+  printf("i work??\n");
   double end = get_time_ms();
   printf("tpool:Operation took %.3f ms\n", end - start);
 
