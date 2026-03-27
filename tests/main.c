@@ -41,10 +41,10 @@ int main(void) {
   tpool *tp = tpool_create(4);
   assert(tp != NULL);
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 4; i++) {
     tpool_add(tp, job, (void *)(uintptr_t)i);
   }
-  tpool_shutdown(tp);
+  // tpool_shutdown(tp);
   tpool_wait(tp);
   tpool_destroy(tp);
   double end = get_time_ms();

@@ -31,9 +31,9 @@ typedef struct _tpool {
 } tpool;
 
 void *worker(void *arg) {
+  // worker thread which will execute jobs from the queue
+  tpool *tp = (tpool *)arg;
   for (;;) {
-    // worker thread which will execute jobs from the queue
-    tpool *tp = (tpool *)arg;
     int c;
     job j;
     pthread_mutex_lock(&tp->tpool_lock);
@@ -41,8 +41,7 @@ void *worker(void *arg) {
       pthread_cond_wait(&tp->worker_cv, &tp->tpool_lock);
     }
     if (tp->job_count == 0 && tp->shutdown == 1) {
-      pthread_cond_signal(&tp->tpool_wait_cv);
-      pthread_mutex_unlock(&tp->tpool_lock);
+      printf("i returned\n");
       return NULL;
     }
     c = tp->cur_job;
@@ -64,6 +63,9 @@ void *worker(void *arg) {
     /* decrement working_thread_count after job function returns*/
     pthread_mutex_lock(&tp->tpool_lock);
     tp->working_thread_count--;
+    if (tp->job_count == 0 && tp->working_thread_count == 0) {
+      pthread_cond_signal(&tp->tpool_wait_cv);
+    }
     pthread_mutex_unlock(&tp->tpool_lock);
   }
 }
@@ -85,9 +87,7 @@ void tpool_wait(tpool *tp) {
 }
 
 int tpool_destroy(tpool *tp) {
-  for (int i = 0; i < tp->thread_count; i++) {
-    pthread_join(tp->threads[i], NULL); // wait for actual exit
-  }
+  tpool_shutdown(tp);
   free(tp->buffer);
   free(tp->threads);
   pthread_cond_destroy(&tp->worker_cv);
@@ -152,6 +152,7 @@ tpool *tpool_create(int thread_count) {
   int th_failure = 0;
   for (int i = 0; i < thread_count; i++) {
     int s = pthread_create(th + i, NULL, worker, (void *)tp);
+    pthread_detach(*(th + i));
     if (s != 0) {
       th_failure++;
       ERR("pthread_create: %s\n", strerror(s));
