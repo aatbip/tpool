@@ -76,13 +76,12 @@ int tpool_shutdown(tpool *tp) {
   return 0;
 }
 
-int tpool_wait(tpool *tp) {
+void tpool_wait(tpool *tp) {
   pthread_mutex_lock(&tp->tpool_lock);
   while (tp->working_thread_count > 0 || tp->job_count > 0) {
     pthread_cond_wait(&tp->tpool_wait_cv, &tp->tpool_lock);
   }
   pthread_mutex_unlock(&tp->tpool_lock);
-  return 0;
 }
 
 int tpool_destroy(tpool *tp) {
