@@ -93,7 +93,8 @@ void tpool_wait(tpool *tp) {
 
 int tpool_destroy(tpool *tp) {
   pthread_mutex_lock(&tp->tpool_lock);
-  tp->shutdown = 1;
+  if (!tp->shutdown)
+    tp->shutdown = 1;
   pthread_cond_broadcast(&tp->worker_cv);
   while (tp->alive_thread_count > 0) {
     pthread_cond_wait(&tp->tpool_wait_cv, &tp->tpool_lock);

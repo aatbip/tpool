@@ -44,7 +44,6 @@ int main(void) {
   for (int i = 0; i < 4; i++) {
     tpool_add(tp, job, (void *)(uintptr_t)i);
   }
-  // tpool_shutdown(tp);
   tpool_wait(tp);
   tpool_destroy(tp);
   double end = get_time_ms();
