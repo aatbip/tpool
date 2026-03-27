@@ -28,6 +28,7 @@ typedef struct _tpool {
   int cur_fill;                 // pointer in buffer where next job to be added
   int working_thread_count;     // count of threads that are still executing the job function
   int shutdown;                 // flag to check if shutdown has been initiated, 1 if shutdown is initiated
+  int alive_thread_count;       // threads that haven't returned
 } tpool;
 
 void *worker(void *arg) {
@@ -41,7 +42,11 @@ void *worker(void *arg) {
       pthread_cond_wait(&tp->worker_cv, &tp->tpool_lock);
     }
     if (tp->job_count == 0 && tp->shutdown == 1) {
-      printf("i returned\n");
+      tp->alive_thread_count--;
+      if (tp->alive_thread_count == 0) {
+        pthread_cond_signal(&tp->tpool_wait_cv);
+      }
+      pthread_mutex_unlock(&tp->tpool_lock);
       return NULL;
     }
     c = tp->cur_job;
@@ -87,7 +92,13 @@ void tpool_wait(tpool *tp) {
 }
 
 int tpool_destroy(tpool *tp) {
-  tpool_shutdown(tp);
+  pthread_mutex_lock(&tp->tpool_lock);
+  tp->shutdown = 1;
+  pthread_cond_broadcast(&tp->worker_cv);
+  while (tp->alive_thread_count > 0) {
+    pthread_cond_wait(&tp->tpool_wait_cv, &tp->tpool_lock);
+  }
+  pthread_mutex_unlock(&tp->tpool_lock);
   free(tp->buffer);
   free(tp->threads);
   pthread_cond_destroy(&tp->worker_cv);
@@ -148,10 +159,12 @@ tpool *tpool_create(int thread_count) {
   tp->cur_fill = 0;
   tp->working_thread_count = 0;
   tp->shutdown = 0;
+  tp->alive_thread_count = 0;
 
   int th_failure = 0;
   for (int i = 0; i < thread_count; i++) {
     int s = pthread_create(th + i, NULL, worker, (void *)tp);
+    tp->alive_thread_count++; // alive_thread_count increments when threads starts running
     pthread_detach(*(th + i));
     if (s != 0) {
       th_failure++;
