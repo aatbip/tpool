@@ -44,8 +44,10 @@ struct c {
 
 void *sort_t(void *args) {
   struct c *a = (struct c *)args;
-  if (a->left >= a->right)
+  if (a->left >= a->right) {
+    free(a);
     return NULL;
+  }
   int pivot_index = median_of_three(a->nums, a->left, a->right);
   // int pivot_index = rand() % (a->right - a->left + 1) + a->left;
   int p = partition(a->nums, a->left, a->right, pivot_index);
@@ -54,42 +56,49 @@ void *sort_t(void *args) {
   r1->n = a->n;
   r1->left = p + 1;
   r1->right = a->right;
-  tpool_add(a->tp, sort_t, (void *)&r1);
+  r1->tp = a->tp;
+  tpool_add(a->tp, sort_t, (void *)r1);
   struct c *r2 = malloc(sizeof(struct c));
   r2->nums = a->nums;
   r2->n = a->n;
   r2->left = a->left;
   r2->right = p - 1;
-  tpool_add(a->tp, sort_t, (void *)&r2);
+  r2->tp = a->tp;
+  tpool_add(a->tp, sort_t, (void *)r2);
+  free(a);
   return NULL;
 }
 
-// void sort(int *nums, int n, int left, int right) {
-//   if (left >= right)
-//     return;
-//   // int pivot_index = rand() % (right - left + 1) + left;
-//   int pivot_index = median_of_three(nums, left, right);
-//   int p = partition(nums, left, right, pivot_index);
-//   sort(nums, n, p + 1, right);
-//   sort(nums, n, left, p - 1);
-// }
-
 void quicksort(int *nums, int n, tpool *tp) {
   srand(time(NULL)); // seeding to make sure rand() generates variable sequence
-  struct c a = {.nums = nums, .n = n, .left = 0, .right = n - 1, .tp = tp};
-  sort_t((void *)&a);
+  struct c *a = malloc(sizeof(struct c));
+  a->nums = nums;
+  a->n = n;
+  a->left = 0;
+  a->right = n - 1;
+  a->tp = tp;
+  sort_t((void *)a);
 }
 
 int main(void) {
+  int s = 500;
+  int *nums = malloc(sizeof(int) * s);
+
+  for (int i = 0; i < s; i++) {
+    nums[i] = s - i;
+  }
+
+  printf("before sort nums[first]: %d\n", nums[0]);
+  printf("before sort nums[last]: %d\n", nums[s - 1]);
+
   tpool *tp = tpool_create(2);
-  int nums[] = {6, 2, 4, 1, 3, 0};
-  quicksort(nums, 6, tp);
+  quicksort(nums, s, tp);
   tpool_wait(tp);
   tpool_destroy(tp);
 
-  for (int i = 0; i < 6; i++) {
-    printf("%d ", nums[i]);
-  }
+  printf("after sort nums[first] %d\n", nums[0]);
+  printf("after sort nums[last] %d\n", nums[s - 1]);
+  free(nums);
 
   return 0;
 }
