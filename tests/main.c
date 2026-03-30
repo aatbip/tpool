@@ -1,17 +1,7 @@
-/*Tests goes here.*/
 #include "tpool.h"
-#include <assert.h>
-#include <pthread.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-
-double get_time_ms() {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
-}
 
 static inline void swap(int *a, int *b) {
   int tempA = *a;
@@ -47,106 +37,51 @@ int partition(int *nums, int left, int right, int pivot_index) {
   return p;
 }
 
-void sort(int *nums, int n, int left, int right) {
-  if (left >= right)
-    return;
-  // int pivot_index = rand() % (right - left + 1) + left;
-  int pivot_index = median_of_three(nums, left, right);
-  int p = partition(nums, left, right, pivot_index);
-  sort(nums, n, p + 1, right);
-  sort(nums, n, left, p - 1);
-}
-
-void quicksort(int *nums, int n) { sort(nums, n, 0, n - 1); }
-
-struct argument {
-  int *nums;
-  int n;
+struct c {
+  int *nums, n, left, right;
+  tpool *tp;
 };
 
-void *job1(void *x) {
-  struct argument *arg = (struct argument *)x;
-  printf("yoo: %d\n", arg->n);
-  quicksort(arg->nums, arg->n);
+void *sort_t(void *args) {
+  struct c *a = (struct c *)args;
+  if (a->left >= a->right)
+    return NULL;
+  // int pivot_index = median_of_three(a->nums, a->left, a->right);
+  int pivot_index = rand() % (a->right - a->left + 1) + a->left;
+  int p = partition(a->nums, a->left, a->right, pivot_index);
+  struct c r1 = {.nums = a->nums, .n = a->n, .left = p + 1, .right = a->right};
+  tpool_add(a->tp, sort_t, (void *)&r1);
+  struct c r2 = {.nums = a->nums, .n = a->n, .left = a->left, .right = p - 1};
+  tpool_add(a->tp, sort_t, (void *)&r2);
   return NULL;
 }
-void *fill(void *x) {
-  printf("filling...\n");
-  int *nums = (void *)x;
-  for (int i = 0; i < 1000000000; i++) {
-    nums[i] = rand();
-  }
-  return NULL;
+
+// void sort(int *nums, int n, int left, int right) {
+//   if (left >= right)
+//     return;
+//   // int pivot_index = rand() % (right - left + 1) + left;
+//   int pivot_index = median_of_three(nums, left, right);
+//   int p = partition(nums, left, right, pivot_index);
+//   sort(nums, n, p + 1, right);
+//   sort(nums, n, left, p - 1);
+// }
+
+void quicksort(int *nums, int n, tpool *tp) {
+  srand(time(NULL)); // seeding to make sure rand() generates variable sequence
+  struct c a = {.nums = nums, .n = n, .left = 0, .right = n - 1, .tp = tp};
+  sort_t((void *)&a);
 }
 
 int main(void) {
-  /*Create tpool with 4 worker threads.*/
-  double start = get_time_ms();
-  tpool *tp = tpool_create(6);
-  assert(tp != NULL);
-  int *nums1 = malloc(sizeof(int) * 1000000000);
-  int *nums2 = malloc(sizeof(int) * 1000000000);
-  int *nums3 = malloc(sizeof(int) * 1000000000);
-  int *nums4 = malloc(sizeof(int) * 1000000000);
-  srand(time(NULL)); // seeding to make sure rand() generates variable sequence
-  tpool *tp1 = tpool_create(6);
-  tpool_add(tp1, fill, nums1);
-  tpool_add(tp1, fill, nums2);
-  tpool_add(tp1, fill, nums3);
-  tpool_add(tp1, fill, nums4);
-  tpool_wait(tp1);
-  tpool_destroy(tp1);
-  struct argument arg1 = {.nums = nums1, .n = 1000000000};
-  struct argument arg2 = {.nums = nums2, .n = 1000000000};
-  struct argument arg3 = {.nums = nums3, .n = 1000000000};
-  struct argument arg4 = {.nums = nums4, .n = 1000000000};
-  struct argument args[] = {arg1, arg2, arg3, arg4};
-  for (int i = 0; i < 4; i++) {
-    tpool_add(tp, job1, (void *)&args[i]);
-  }
+  tpool *tp = tpool_create(2);
+  int nums[] = {6, 2, 4, 1, 3, 0};
+  quicksort(nums, 6, tp);
   tpool_wait(tp);
   tpool_destroy(tp);
-  double end = get_time_ms();
-  printf("tpool:Operation took %.3f ms\n", end - start);
-  for (int i = 0; i < 20; i++) {
-    printf("%d ", nums1[i]);
+
+  for (int i = 0; i < 6; i++) {
+    printf("%d ", nums[i]);
   }
 
   return 0;
 }
-
-// int main(void) {
-//   double start = get_time_ms();
-//   int *nums1 = malloc(sizeof(int) * 1000000000);
-//   int *nums2 = malloc(sizeof(int) * 1000000000);
-//   int *nums3 = malloc(sizeof(int) * 1000000000);
-//   int *nums4 = malloc(sizeof(int) * 1000000000);
-//   srand(time(NULL)); // seeding to make sure rand() generates variable sequence
-//   for (int i = 0; i < 1000000000; i++) {
-//     nums1[i] = rand();
-//   }
-//   for (int i = 0; i < 1000000000; i++) {
-//     nums2[i] = rand();
-//   }
-//   for (int i = 0; i < 1000000000; i++) {
-//     nums3[i] = rand();
-//   }
-//   for (int i = 0; i < 1000000000; i++) {
-//     nums4[i] = rand();
-//   }
-//   struct argument arg1 = {.nums = nums1, .n = 1000000000};
-//   struct argument arg2 = {.nums = nums2, .n = 1000000000};
-//   struct argument arg3 = {.nums = nums3, .n = 1000000000};
-//   struct argument arg4 = {.nums = nums4, .n = 1000000000};
-//   struct argument args[] = {arg1, arg2, arg3, arg4};
-//   for (int i = 0; i < 4; i++) {
-//     job1((void *)&args[i]);
-//   }
-//   double end = get_time_ms();
-//   printf("tpool:Operation took %.3f ms\n", end - start);
-//   for (int i = 0; i < 20; i++) {
-//     printf("%d ", nums1[i]);
-//   }
-//
-//   return 0;
-// }
