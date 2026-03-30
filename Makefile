@@ -4,10 +4,11 @@ CC_FLAGS = -Wall -I. -pthread
 tests/tpool.o: tpool.c tpool.h
 	${CC} -Wall -c $< -o $@
 
-tests/out: tests/main.c tests/tpool.o
+tests/out: tests/$(EX) tests/tpool.o
 	${CC} ${CC_FLAGS} $^ -o $@
 
-run: tests/out
+run: clean tests/out
+	@echo "\n-------Running ./tests/$(EX)-------\n"
 	./tests/out
 
 clean: 
