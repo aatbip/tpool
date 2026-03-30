@@ -114,7 +114,7 @@ void quicksort(int *nums, int n, tpool *tp) {
 }
 
 int main(void) {
-  int s = 2099999999;
+  int s = 10000000;
   int *nums = malloc(sizeof(int) * s);
 
   for (int i = 0; i < s; i++) {
@@ -128,7 +128,7 @@ int main(void) {
 
   // quicksort(nums, s, NULL);
 
-  tpool *tp = tpool_create(12);
+  tpool *tp = tpool_create(12, THRESSHOLD);
   quicksort(nums, s, tp);
   tpool_wait(tp);
   tpool_destroy(tp);

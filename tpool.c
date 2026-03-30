@@ -1,4 +1,5 @@
 #include "tpool.h"
+#include <assert.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +30,7 @@ typedef struct _tpool {
   int working_thread_count;     // count of threads that are still executing the job function
   int shutdown;                 // flag to check if shutdown has been initiated, 1 if shutdown is initiated
   int alive_thread_count;       // threads that haven't returned
+  int buffer_size;
 } tpool;
 
 void *worker(void *arg) {
@@ -50,7 +52,7 @@ void *worker(void *arg) {
       return NULL;
     }
     c = tp->cur_job;
-    tp->cur_job = (tp->cur_job + 1) % BUFFER_SIZE; // circular update of cur_job
+    tp->cur_job = (tp->cur_job + 1) % tp->buffer_size; // circular update of cur_job
     /* increment working_thread_count to track number of threads still executing the job function*/
     tp->working_thread_count++;
     tp->job_count--; // decrement the number of jobs in the buffer
@@ -117,19 +119,19 @@ int tpool_add(tpool *tp, void *(*func)(void *), void *arg) {
     pthread_mutex_unlock(&tp->tpool_lock);
     return 0;
   }
-  while (tp->job_count >= BUFFER_SIZE) {
+  while (tp->job_count >= tp->buffer_size) {
     pthread_cond_wait(&tp->enque_cv, &tp->tpool_lock);
   }
   (tp->buffer + tp->cur_fill)->f = func;
   (tp->buffer + tp->cur_fill)->arg = arg;
   tp->job_count++;
-  tp->cur_fill = (tp->cur_fill + 1) % BUFFER_SIZE;
+  tp->cur_fill = (tp->cur_fill + 1) % tp->buffer_size;
   pthread_cond_signal(&tp->worker_cv);
   pthread_mutex_unlock(&tp->tpool_lock);
   return 0;
 }
 
-tpool *tpool_create(int thread_count) {
+tpool *tpool_create(int thread_count, int buffer_size) {
   tpool *tp = malloc(sizeof(*tp));
   pthread_t *th = malloc(sizeof(*th) * thread_count);
   if (!tp || !th) {
@@ -143,7 +145,7 @@ tpool *tpool_create(int thread_count) {
   cond_ch = pthread_cond_init(&tp->worker_cv, NULL);
   cond_ch = pthread_cond_init(&tp->enque_cv, NULL);
   cond_ch = pthread_cond_init(&tp->tpool_wait_cv, NULL);
-  job *buf = malloc(sizeof(job) * BUFFER_SIZE);
+  job *buf = malloc(sizeof(job) * buffer_size);
   if (mutex_ch != 0 || cond_ch != 0 || !buf) {
     free(tp);
     free(th);
@@ -161,6 +163,7 @@ tpool *tpool_create(int thread_count) {
   tp->working_thread_count = 0;
   tp->shutdown = 0;
   tp->alive_thread_count = 0;
+  tp->buffer_size = buffer_size;
 
   int th_failure = 0;
   for (int i = 0; i < thread_count; i++) {
