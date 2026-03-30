@@ -1,3 +1,6 @@
+/* This example uses tpool library to run the recursive calls of quick sort algorithm in a concurrent manner.
+ * Benchmark will be added in readme.*/
+
 #include "tpool.h"
 #include <stdio.h>
 #include <stdlib.h>
