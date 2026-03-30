@@ -46,12 +46,20 @@ void *sort_t(void *args) {
   struct c *a = (struct c *)args;
   if (a->left >= a->right)
     return NULL;
-  // int pivot_index = median_of_three(a->nums, a->left, a->right);
-  int pivot_index = rand() % (a->right - a->left + 1) + a->left;
+  int pivot_index = median_of_three(a->nums, a->left, a->right);
+  // int pivot_index = rand() % (a->right - a->left + 1) + a->left;
   int p = partition(a->nums, a->left, a->right, pivot_index);
-  struct c r1 = {.nums = a->nums, .n = a->n, .left = p + 1, .right = a->right};
+  struct c *r1 = malloc(sizeof(struct c));
+  r1->nums = a->nums;
+  r1->n = a->n;
+  r1->left = p + 1;
+  r1->right = a->right;
   tpool_add(a->tp, sort_t, (void *)&r1);
-  struct c r2 = {.nums = a->nums, .n = a->n, .left = a->left, .right = p - 1};
+  struct c *r2 = malloc(sizeof(struct c));
+  r2->nums = a->nums;
+  r2->n = a->n;
+  r2->left = a->left;
+  r2->right = p - 1;
   tpool_add(a->tp, sort_t, (void *)&r2);
   return NULL;
 }
