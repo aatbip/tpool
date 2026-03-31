@@ -30,13 +30,12 @@ of the quicksort algorithm. Program for this experiment can be found in `/tests/
 behind such bug, and how did I overcome it in this experiment.
 
 All experiments were executed on the same environment under identical conditions. The system detail is as follows:
-| | |
-|:---|:---|
-|**OS:**|Ubuntu 22.04.5 LTS|
-|**Kernel:**|Linux kernel 6.8.0-85-generic|
-|**CPU:**|Intel Core i7-10750H CPU (6 core, 12 threads)|
-|**Memory:**|16 GB DDR4|
-|**Compiler:**|GCC 11.4.0 with -O2 optimization|
+
+**OS:** Ubuntu 22.04.5 LTS  
+**Kernel:** Linux kernel 6.8.0-85-generic  
+**CPU:** Intel Core i7-10750H CPU (6 core, 12 threads)  
+**Memory:** 16 GB DDR4  
+**Compiler:** GCC 11.4.0 with -O2 optimization
 
 ### Test I
 Threads were created with `thread_count=6` and `buffer_size=50` using `tpool_create`. Memory buffer of `size(s) = 999999999 * sizeof(int)` was allocated
@@ -54,11 +53,11 @@ gcc -Wall -I. -pthread tests/ex1.c tests/tpool.o -o tests/out
 ./tests/out
 before sort nums[first]: 999999999
 before sort nums[last]: 1
-Operation took 63046.930 ms
+Operation took 14504.181 ms
 after sort nums[first] 1
 after sort nums[last] 999999999
 ```
-Result: It took 63046.930 ms (approx 1.050 minutes) to sort the array of size `s` (~4GB) in a concurrent manner.
+Result: It took 14504.181 ms (approx 14 seconds) to sort the array of size `s` (~4GB) in a concurrent manner.
 
 ### Test II
 The same array initialized above was sorted using the quicksort algorithm without using tpool. Below is the output of the program `/tests/ex1.c`
@@ -75,15 +74,15 @@ gcc -Wall -I. -pthread tests/ex1.c tests/tpool.o -o tests/out
 ./tests/out
 before sort nums[first]: 999999999
 before sort nums[last]: 1
-Operation took 203362.367 ms
+Operation took 43424.730 ms
 after sort nums[first] 1
 after sort nums[last] 999999999
 ```
-Result: It took 203362.367 ms (approx 3.389 minutes) to sort the array of size `s` (~4GB) using single thread.
+Result: It took 43424.730 ms (approx 43 minutes) to sort the array of size `s` (~4GB) using single thread.
 
 ### Observation
 It was observed that by using a threadpool library we were able to run recursive functions of the quicksort algorithm concurrently achieving
-70% increase in performance while sorting array of integers of size ~4GB. 
+67% increase in performance while sorting array of integers of size ~4GB. 
 
 ### Deadlock bug 
 While working on this experiment, I caught a critical deadlock bug that was caused due to concurrently executing the recursive functions.

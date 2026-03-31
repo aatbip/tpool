@@ -1,5 +1,5 @@
 CC = gcc
-CC_FLAGS = -Wall -I. -pthread
+CC_FLAGS = -Wall -O2 -I. -pthread
 
 tests/tpool.o: tpool.c tpool.h
 	${CC} -Wall -c $< -o $@
