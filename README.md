@@ -25,7 +25,7 @@ Tpool uses the Linux pthread API to create threads, mutex and condition variable
 ## Experiments and Benchmarks
 
 I experimented Tpool under various workloads. One of such workloads were to make the recursive calls of the quicksort algorithm concurrent. 
-I was able to notice the impact of design decision taken by the multithreading runtime tpool when using it to concurrently run the recursive function 
+I was able to notice the impact of design decision taken by the threadpool library tpool when using it to concurrently run the recursive function 
 of the quicksort algorithm. Program for this experiment can be found in `/tests/ex1.c` file. I will also discuss a deadlock bug I came across, the reason
 behind such bug, and how did I overcome it in this experiment.
 
@@ -82,7 +82,7 @@ after sort nums[last] 999999999
 Result: It took 203362.367 ms (approx 3.389 minutes) to sort the array of size `s` (~4GB) using single thread.
 
 ### Observation
-It was observed that by using a multithreading runtime we were able to run recursive functions of the quicksort algorithm concurrently achieving
+It was observed that by using a threadpool library we were able to run recursive functions of the quicksort algorithm concurrently achieving
 70% increase in performance while sorting array of integers of size ~4GB. 
 
 ### Deadlock bug 
