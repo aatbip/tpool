@@ -31,11 +31,13 @@ behind such bug, and how did I overcome it in this experiment.
 
 All experiments were executed on the same environment under identical conditions. The system detail is as follows:
 
-**OS:** Ubuntu 22.04.5 LTS  
-**Kernel:** Linux kernel 6.8.0-85-generic  
-**CPU:** Intel Core i7-10750H CPU (6 core, 12 threads)  
-**Memory:** 16 GB DDR4  
-**Compiler:** GCC 11.4.0 with -O2 optimization
+|  |  |
+|:----|:------|
+| **OS:** | Ubuntu 22.04.5 LTS |
+| **Kernel:** | Linux kernel 6.8.0-85-generic |
+| **CPU:** | Intel Core i7-10750H CPU (6 core, 12 threads) |
+| **Memory:** | 16 GB DDR4 |
+| **Compiler:** | GCC 11.4.0 with -O2 optimization |
 
 ### Test I
 Threads were created with `thread_count=6` and `buffer_size=50` using `tpool_create`. Memory buffer of `size(s) = 999999999 * sizeof(int)` was allocated
