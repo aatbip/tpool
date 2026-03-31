@@ -64,11 +64,11 @@ void sort(int *nums, int n, int left, int right) {
   sort(nums, n, left, p - 1);
 }
 
-void *sort_t(void *args) {
+void sort_t(void *args) {
   struct c *a = (struct c *)args;
   if (a->left >= a->right) {
     free(a);
-    return NULL;
+    return;
   }
   int pivot_index = median_of_three(a->nums, a->left, a->right);
   // int pivot_index = rand() % (a->right - a->left + 1) + a->left;
@@ -98,7 +98,6 @@ void *sort_t(void *args) {
     }
   }
   free(a);
-  return NULL;
 }
 
 void quicksort(int *nums, int n, tpool *tp) {
@@ -117,7 +116,7 @@ void quicksort(int *nums, int n, tpool *tp) {
 }
 
 int main(void) {
-  int s = 10000000;
+  int s = 999999999;
   int *nums = malloc(sizeof(int) * s);
 
   for (int i = 0; i < s; i++) {
@@ -131,7 +130,7 @@ int main(void) {
 
   // quicksort(nums, s, NULL);
 
-  tpool *tp = tpool_create(12, THRESSHOLD);
+  tpool *tp = tpool_create(4, THRESSHOLD);
   quicksort(nums, s, tp);
   tpool_wait(tp);
   tpool_destroy(tp);

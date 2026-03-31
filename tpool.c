@@ -9,7 +9,7 @@
 
 #define ERR(s, ...) (fprintf(stderr, "err: " s, ##__VA_ARGS__))
 
-typedef void *job_func(void *);
+typedef void job_func(void *);
 
 typedef struct _job {
   job_func *f;
@@ -112,7 +112,7 @@ int tpool_destroy(tpool *tp) {
   return 0;
 }
 
-int tpool_add(tpool *tp, void *(*func)(void *), void *arg) {
+int tpool_add(tpool *tp, void (*func)(void *), void *arg) {
   pthread_mutex_lock(&tp->tpool_lock);
   if (tp->shutdown == 1) {
     pthread_cond_broadcast(&tp->worker_cv);
