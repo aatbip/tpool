@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BUFFER_SIZE 50 // Should be able to declare during tpool_create?
-
 #define ERR(s, ...) (fprintf(stderr, "err: " s, ##__VA_ARGS__))
 
 typedef void job_func(void *);
