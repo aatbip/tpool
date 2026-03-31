@@ -22,23 +22,12 @@ multiple worker threads are created to process the job.
 
 Tpool uses the Linux pthread API to create threads, mutex and condition variables to achieve lock based synchronization.
 
-### Tpool API
+## Experiments and Benchmarks
 
-Below are the list of APIs Tpool provides-
-
-| Function | Detail |
-|:------|:---|
-|`tpool *tpool_create(int thread_count, int buffer_size)` | Creates threads and returns the pointer of type `tpool` if succeeds, returns NULL if failed. Accepts number of threads `thread_count` and size of the circular buffer `buffer_size` as parameters. |
-|`int tpool_add(tpool *tp, void (*func)(void *), void *arg)` |Add jobs to the buffer using `tpool_add` API. It accepts `tpool*`, pointer to the job function and argument of the job function.|
-|`void tpool_wait(tpool *tp)` | Use this to wait for worker threads to return. Otherwise, main thread can return without waiting for the worker threads to return resulting in the termination of the program. |
-|`int tpool_shutdown(tpool *tp)`|This API makes Tpool to return without executing jobs further. This works on graceful shutdown policy by waiting until working threads return.|
-|`int tpool_destroy(tpool *tp)`|Wait for worker threads to return, free the allocated memory, and destroy condition variables and mutex.|
-|`int tpool_count_working_threads(tpool *tp)`|Get the count of working threads i.e. threads that are currently processing on jobs.|
-
-### Benchmark
-
-I experimented on Tpool by using it to concurrently run the recursive function of the quicksort algorithm. Program for this experiment can be found
-in `/tests/ex1.c` file.
+I experimented Tpool under various workloads. One of such workloads were to make the recursive calls of the quicksort algorithm concurrent. 
+I was able to notice the impact of design decision taken by the multithreading runtime tpool when using it to concurrently run the recursive function 
+of the quicksort algorithm. Program for this experiment can be found in `/tests/ex1.c` file. I will also discuss a deadlock bug I came across, the reason
+behind such bug, and how did I overcome it in this experiment.
 
 All experiments were executed on the same environment under identical conditions. The system detail is as follows:
 | | |
@@ -49,7 +38,8 @@ All experiments were executed on the same environment under identical conditions
 |**Memory:**|16 GB DDR4|
 |**Compiler:**|GCC 11.4.0 with -O2 optimization|
 
-**Test I:** Threads were created with `thread_count=6` and `buffer_size=50` using `tpool_create`. Memory buffer of size(s) = 999999999 * sizeof(int) was allocated
+### Test I
+Threads were created with `thread_count=6` and `buffer_size=50` using `tpool_create`. Memory buffer of size(s) = 999999999 * sizeof(int) was allocated
 which was then initialized with integer from `0 to s-1`. This array of integer of size ~4G was provided as input to the quicksort sorting algorithm.
 Recursive calls of the quicksort algorithm was then pushed as jobs to the buffer using `tpool_add` function which was processed by tpool workers concurrently.
 Below is the output of the program `/tests/ex1.c`:
@@ -70,7 +60,8 @@ after sort nums[last] 999999999
 ```
 Result: It took 63046.930 ms (approx 1.050 minutes) to sort the array of size `s` (~4GB) in a concurrent manner.
 
-**Test II:** The same array initialized above was sorted using the quicksort algorithm without using tpool. Below is the output of the program `/tests/ex1.c`
+### Test II
+The same array initialized above was sorted using the quicksort algorithm without using tpool. Below is the output of the program `/tests/ex1.c`
 without using tpool: 
 
 ```sh
@@ -90,8 +81,63 @@ after sort nums[last] 999999999
 ```
 Result: It took 203362.367 ms (approx 3.389 minutes) to sort the array of size `s` (~4GB) using single thread.
 
-**Observation:** It was observed that by using a multithreaded runtime we were able to run recursive functions of the quicksort algorithm concurrently achieving
+## Observation
+It was observed that by using a multithreading runtime we were able to run recursive functions of the quicksort algorithm concurrently achieving
 a drastic increase in performance while sorting array of integers of size ~4GB. 
 
+## Deadlock bug 
+While working on this experiment, I caught a critical deadlock bug that was caused due to concurrently executing the recursive functions.
 
+#### **Cause:**
+Tpool uses bounded buffer of fix size and blocking producer/consumer. 
+
+Blocking producer/consumer means that producer can wait and signal consumer if buffer is full. Similarly, consumer can wait and signal producer if buffer is empty
+and there are no jobs to execute.
+
+In a recursive quicksort algorithm, we are making the recursive calls concurrent using Tpool.
+```c
+quicksort(args){
+    tpool_add(quicksort, args);
+    tpool_add(quicksort, args);
+}
+```
+Pseudocode above shows that `quicksort` function recursively calls `tpool_add` that enqueues the pointer to the function `quicksort` and arguments `args` into the
+buffer. Now when the worker threads of tpool run, they again call the same `quicksort` recursive function from the buffer. Which will in turn run `tpool_add`. This
+is a classic example of ***worker thread become producers*** in a recursive function making to work concurrently using tpool's design.
+
+This behaviour makes the buffer full making the producer thread to wait. Since consumer (worker) threads also recursively is running `tpool_add` acting like
+producer, they also wait. Both threads wait causing ***deadlock***.
+
+#### **Fix:**
+As a workaround to using tpool in recursive functions we introduce the `THRESHOLD` counter which is equal to the size of the bounded buffer. In every recursive
+calls, we decrement the value of `THRESHOLD`. If it becomes `0` then we will no more call `tpool_add` but instead call the recursive function directly.
+Pseudocode below shows this approach:
+```C
+int THRESHOLD = 50 //size of buffer
+quicksort(args){
+    THRESHOLD--;
+    if(THRESHOLD == 0){
+        quicksort(args);
+        quicksort(args);
+    }else {
+        tpool_add(quicksort, args);
+        tpool_add(quicksort, args);
+    }
+}
+```
+
+We can also use a dynamically sized linkedlist or work stealing deque to design the buffer which should eliminate such issues in recursive functions.
+
+### Tpool API
+
+Below are the list of APIs Tpool provides-
+
+| Function | Detail |
+|:------|:---|
+|`tpool *tpool_create(int thread_count, int buffer_size)` | Creates threads and returns the pointer of type `tpool` if succeeds, returns NULL if failed. Accepts number of threads `thread_count` and size of the circular buffer `buffer_size` as parameters. |
+|`int tpool_add(tpool *tp, void (*func)(void *), void *arg)` |Add jobs to the buffer using `tpool_add` API. It accepts `tpool*`, pointer to the job function and argument of the job function.|
+|`void tpool_wait(tpool *tp)` | Use this to wait for worker threads to return. Otherwise, main thread can return without waiting for the worker threads to return resulting in the termination of the program. |
+|`int tpool_shutdown(tpool *tp)`|This API makes Tpool to return without executing jobs further. This works on graceful shutdown policy by waiting until working threads return.|
+|`int tpool_destroy(tpool *tp)`|Wait for worker threads to return, free the allocated memory, and destroy condition variables and mutex.|
+|`int tpool_count_working_threads(tpool *tp)`|Get the count of working threads i.e. threads that are currently processing on jobs.|
 
