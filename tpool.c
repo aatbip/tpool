@@ -75,6 +75,8 @@ void *worker(void *arg) {
   }
 }
 
+int tpool_count_working_threads(tpool *tp) { return tp->working_thread_count; }
+
 int tpool_shutdown(tpool *tp) {
   pthread_mutex_lock(&tp->tpool_lock);
   tp->shutdown = 1;
