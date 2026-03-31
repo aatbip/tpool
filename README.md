@@ -35,3 +35,24 @@ Below are the list of APIs Tpool provides-
 |`int tpool_destroy(tpool *tp)`|Wait for worker threads to return, free the allocated memory, and destroy condition variables and mutex.|
 |`int tpool_count_working_threads(tpool *tp)`|Get the count of working threads i.e. threads that are currently processing on jobs.|
 
+### Benchmark
+
+I experimented on Tpool by using it to concurrently run the recursive function of the quicksort algorithm. Program for this experiment can be found
+in `/tests/ex1.c` file.
+
+All experiments were executed on the same environment under identical conditions. The system detail is as follows:
+| | |
+|:---|:---|
+|**OS:**|Ubuntu 22.04.5 LTS|
+|**Kernel:**|Linux kernel 6.8.0-85-generic|
+|**CPU:**|Intel Core i7-10750H CPU (6 core, 12 threads)|
+|**Memory:**|16 GB DDR4|
+|**Compiler:**|GCC 11.4.0 with -O2 optimization|
+
+**Test I:** Tpool thread pool was created with `thread_count=6` and `buffer_size=50`. Memory was allocated of size `sizeof(int) * s`, where `s=999999999` 
+which was then initialized by integer from `0 to s-1`. This array of integer was provided as input to the quicksort sorting algorithm.
+Recursive calls of the quicksort algorithm was then pushed as jobs to the buffer using `tpool_add` function which was processed by tpool workers concurrently.
+Below is the output of the program `/tests/ex1.c`:
+
+
+
