@@ -128,8 +128,10 @@ int main(void) {
 
   double start = get_time_ms();
 
+  /*Uncomment this to run without tpool*/
   // quicksort(nums, s, NULL);
 
+  /*Uncomment this to run concurrently using tpool*/
   tpool *tp = tpool_create(4, THRESSHOLD);
   quicksort(nums, s, tp);
   tpool_wait(tp);
