@@ -1,7 +1,7 @@
 # Tpool
 
 Tpool is a high-performance thread pool library written in C. I am writing Tpool to better understand concurrency concepts 
-and do some experiments with multithreaded programming. I have plans to further improve Tpool which I will discuss in the "Goals" section below.
+and do some experiments with multithreaded programming. I have plans to further improve Tpool which I will discuss in the section below.
 
 ### Overview
 
@@ -13,7 +13,7 @@ typedef struct _job {
   void *arg;
 } job;
 ```
-The struct `job` has pointer to the job function `job_func` and the argument pointer to the function `arg`. This struct is 
+The struct `job` has pointer to the job function `job_func` and the pointer to the argument `arg` of the job function. This struct is 
 stored in the circular buffer which has operations based on a queue ADT. Tpool uses first-in-first-out (FIFO) scheduling
 policy, in other words, the first job enqueued in the circular buffer is dequeued at first for processing.
 
@@ -39,10 +39,10 @@ All experiments were executed on the same environment under identical conditions
 |**Compiler:**|GCC 11.4.0 with -O2 optimization|
 
 ### Test I
-Threads were created with `thread_count=6` and `buffer_size=50` using `tpool_create`. Memory buffer of size(s) = 999999999 * sizeof(int) was allocated
+Threads were created with `thread_count=6` and `buffer_size=50` using `tpool_create`. Memory buffer of `size(s) = 999999999 * sizeof(int)` was allocated
 which was then initialized with integer from `0 to s-1`. This array of integer of size ~4G was provided as input to the quicksort sorting algorithm.
 Recursive calls of the quicksort algorithm was then pushed as jobs to the buffer using `tpool_add` function which was processed by tpool workers concurrently.
-Below is the output of the program `/tests/ex1.c`:
+Below is the output of the program `/tests/ex1.c` using tpool for concurrency:
 ```sh
 >> make run EX=ex1.c               
 rm -rf ./tests/out && rm -rf ./tests/tpool.o
@@ -81,11 +81,11 @@ after sort nums[last] 999999999
 ```
 Result: It took 203362.367 ms (approx 3.389 minutes) to sort the array of size `s` (~4GB) using single thread.
 
-## Observation
+### Observation
 It was observed that by using a multithreading runtime we were able to run recursive functions of the quicksort algorithm concurrently achieving
-a drastic increase in performance while sorting array of integers of size ~4GB. 
+70% increase in performance while sorting array of integers of size ~4GB. 
 
-## Deadlock bug 
+### Deadlock bug 
 While working on this experiment, I caught a critical deadlock bug that was caused due to concurrently executing the recursive functions.
 
 #### **Cause:**
