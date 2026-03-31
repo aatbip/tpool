@@ -141,3 +141,11 @@ Below are the list of APIs Tpool provides-
 |`int tpool_destroy(tpool *tp)`|Wait for worker threads to return, free the allocated memory, and destroy condition variables and mutex.|
 |`int tpool_count_working_threads(tpool *tp)`|Get the count of working threads i.e. threads that are currently processing on jobs.|
 
+### Further Development
+
+I will be working on Tpool further in the upcoming days. Some of the things I want to do are: 
+- Aggressive shutdown
+- Implement work stealing deque by replacing the bound buffer
+- Implement lock free and atomics based data structure (work stealing deque)
+- NUMA aware stuffs
+- and other ideas still in my mind but aren't solid yet... will add if it interests me.
