@@ -8,5 +8,6 @@ int tpool_add(tpool *tp, void (*func)(void *), void *arg);
 void tpool_wait(tpool *tp);
 int tpool_shutdown(tpool *tp);
 int tpool_destroy(tpool *tp);
+int tpool_count_working_threads(tpool *tp);
 
 #endif // !tpool_h
