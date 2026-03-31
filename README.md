@@ -49,10 +49,49 @@ All experiments were executed on the same environment under identical conditions
 |**Memory:**|16 GB DDR4|
 |**Compiler:**|GCC 11.4.0 with -O2 optimization|
 
-**Test I:** Tpool thread pool was created with `thread_count=6` and `buffer_size=50`. Memory was allocated of size `sizeof(int) * s`, where `s=999999999` 
-which was then initialized by integer from `0 to s-1`. This array of integer was provided as input to the quicksort sorting algorithm.
+**Test I:** Threads were created with `thread_count=6` and `buffer_size=50` using `tpool_create`. Memory buffer of size(s) = 999999999 * sizeof(int) was allocated
+which was then initialized with integer from `0 to s-1`. This array of integer of size ~4G was provided as input to the quicksort sorting algorithm.
 Recursive calls of the quicksort algorithm was then pushed as jobs to the buffer using `tpool_add` function which was processed by tpool workers concurrently.
 Below is the output of the program `/tests/ex1.c`:
+```sh
+>> make run EX=ex1.c               
+rm -rf ./tests/out && rm -rf ./tests/tpool.o
+gcc -Wall -c tpool.c -o tests/tpool.o
+gcc -Wall -I. -pthread tests/ex1.c tests/tpool.o -o tests/out
+
+-------Running ./tests/ex1.c-------
+
+./tests/out
+before sort nums[first]: 999999999
+before sort nums[last]: 1
+Operation took 63046.930 ms
+after sort nums[first] 1
+after sort nums[last] 999999999
+```
+Result: It took 63046.930 ms (approx 1.050 minutes) to sort the array of size `s` (~4GB) in a concurrent manner.
+
+**Test II:** The same array initialized above was sorted using the quicksort algorithm without using tpool. Below is the output of the program `/tests/ex1.c`
+without using tpool: 
+
+```sh
+>> make run EX=ex1.c
+rm -rf ./tests/out && rm -rf ./tests/tpool.o
+gcc -Wall -c tpool.c -o tests/tpool.o
+gcc -Wall -I. -pthread tests/ex1.c tests/tpool.o -o tests/out
+
+-------Running ./tests/ex1.c-------
+
+./tests/out
+before sort nums[first]: 999999999
+before sort nums[last]: 1
+Operation took 203362.367 ms
+after sort nums[first] 1
+after sort nums[last] 999999999
+```
+Result: It took 203362.367 ms (approx 3.389 minutes) to sort the array of size `s` (~4GB) using single thread.
+
+**Observation:** It was observed that by using a multithreaded runtime we were able to run recursive functions of the quicksort algorithm concurrently achieving
+a drastic increase in performance while sorting array of integers of size ~4GB. 
 
 
 

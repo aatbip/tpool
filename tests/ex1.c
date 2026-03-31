@@ -129,13 +129,13 @@ int main(void) {
   double start = get_time_ms();
 
   /*Uncomment this to run without tpool*/
-  // quicksort(nums, s, NULL);
+  quicksort(nums, s, NULL);
 
   /*Uncomment this to run concurrently using tpool*/
-  tpool *tp = tpool_create(4, THRESSHOLD);
-  quicksort(nums, s, tp);
-  tpool_wait(tp);
-  tpool_destroy(tp);
+  // tpool *tp = tpool_create(6, THRESSHOLD);
+  // quicksort(nums, s, tp);
+  // tpool_wait(tp);
+  // tpool_destroy(tp);
 
   double end = get_time_ms();
   printf("Operation took %.3f ms\n", end - start);
