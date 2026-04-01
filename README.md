@@ -80,7 +80,7 @@ Operation took 43424.730 ms
 after sort nums[first] 1
 after sort nums[last] 999999999
 ```
-Result: It took 43424.730 ms (approx 43 minutes) to sort the array of size `s` (~4GB) using single thread.
+Result: It took 43424.730 ms (approx 43 seconds) to sort the array of size `s` (~4GB) using single thread.
 
 ### Observation
 It was observed that by using a threadpool library we were able to run recursive functions of the quicksort algorithm concurrently achieving
