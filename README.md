@@ -110,19 +110,18 @@ This behaviour makes the buffer full making the producer thread to wait. Since c
 producer, they also wait. Both threads wait causing ***deadlock***.
 
 #### **Fix:**
-As a workaround to using tpool in recursive functions we introduce the `THRESHOLD` counter which is equal to the size of the bounded buffer. In every recursive
-calls, we decrement the value of `THRESHOLD`. If it becomes `0` then we will no more call `tpool_add` but instead call the recursive function directly.
-Pseudocode below shows this approach:
+As a workaround to using tpool in recursive functions we introduce the per job `depth` counter that defines the max concurrent recursive level. In every 
+recursive calls, we decrement the value of `depth` before adding the recursive job to the queue. If `depth` becomes `0` then we will no longer add the recursive job to the queue using `tpool_add` but instead call the recursive function directly. Pseudocode below shows this approach:
 ```C
-int THRESHOLD = 50 //size of buffer
 quicksort(args){
-    THRESHOLD--;
-    if(THRESHOLD == 0){
+    if(args->depth <= 0){
         quicksort(args);
         quicksort(args);
     }else {
-        tpool_add(quicksort, args);
-        tpool_add(quicksort, args);
+        args1->depth = args->depth-1; 
+        tpool_add(quicksort, args1);
+        args2->depth = args->depth-1;
+        tpool_add(quicksort, args2);
     }
 }
 ```
