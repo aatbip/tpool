@@ -2,9 +2,12 @@
  * Benchmark will be added in readme.*/
 
 #include "tpool.h"
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+#define MAX_DEPTH 5 // max concurrent recurssion level
 
 // Returns time in milliseconds
 double get_time_ms() {
@@ -48,11 +51,9 @@ int partition(int *nums, int left, int right, int pivot_index) {
 }
 
 struct c {
-  int *nums, n, left, right;
+  int *nums, n, left, right, depth;
   tpool *tp;
 };
-
-int THRESSHOLD = 50;
 
 void sort(int *nums, int n, int left, int right) {
   if (left >= right)
@@ -72,9 +73,8 @@ void sort_t(void *args) {
   }
   int pivot_index = median_of_three(a->nums, a->left, a->right);
   // int pivot_index = rand() % (a->right - a->left + 1) + a->left;
-  THRESSHOLD--;
   int p = partition(a->nums, a->left, a->right, pivot_index);
-  if (THRESSHOLD <= 0) {
+  if (a->depth <= 0) {
     sort(a->nums, a->n, a->left, p - 1);
     sort(a->nums, a->n, p + 1, a->right);
   } else {
@@ -85,6 +85,7 @@ void sort_t(void *args) {
       r1->left = a->left;
       r1->right = p - 1;
       r1->tp = a->tp;
+      r1->depth = a->depth - 1;
       tpool_add(a->tp, sort_t, (void *)r1);
     }
     if (p + 1 < a->right) {
@@ -94,6 +95,7 @@ void sort_t(void *args) {
       r2->left = p + 1;
       r2->right = a->right;
       r2->tp = a->tp;
+      r2->depth = a->depth - 1;
       tpool_add(a->tp, sort_t, (void *)r2);
     }
   }
@@ -111,6 +113,7 @@ void quicksort(int *nums, int n, tpool *tp) {
     a->left = 0;
     a->right = n - 1;
     a->tp = tp;
+    a->depth = MAX_DEPTH;
     sort_t((void *)a);
   }
 }
@@ -129,13 +132,13 @@ int main(void) {
   double start = get_time_ms();
 
   /*Uncomment this to run without tpool*/
-  quicksort(nums, s, NULL);
+  // quicksort(nums, s, NULL);
 
   /*Uncomment this to run concurrently using tpool*/
-  // tpool *tp = tpool_create(6, THRESSHOLD);
-  // quicksort(nums, s, tp);
-  // tpool_wait(tp);
-  // tpool_destroy(tp);
+  tpool *tp = tpool_create(6, 50);
+  quicksort(nums, s, tp);
+  tpool_wait(tp);
+  tpool_destroy(tp);
 
   double end = get_time_ms();
   printf("Operation took %.3f ms\n", end - start);
